@@ -51,21 +51,21 @@ func main() {
 
 
 	// Channel
-	// create a channelUnbuffer
-	channelUnbuffer := make(chan string) // if you don't specify the buffer, it will be unbuffered channel, it means it will be blocked until the value is received, it is synchronous, must use goroutine to send and receive value
+	// create a channelUnbuffered
+	channelUnbuffered := make(chan string) // if you don't specify the buffer, it will be unbuffered channel, it means it will be blocked until the value is received, it is synchronous, must use goroutine to send and receive value
 	// create a channel with buffer
-	channelBuffer := make(chan string, 5) // just accept 5 values, if more than 5 values, it will be blocked
+	channelBuffered := make(chan string, 5) // just accept 5 values, if more than 5 values, it will be blocked
 	// send a value to the channel, use the goroutine
-	go sendEvent(channelUnbuffer, "a")
+	go sendEvent(channelUnbuffered, "a")
 	// receive a value from the channel
-	value := <-channelUnbuffer
+	value := <-channelUnbuffered
 
 	// send a value to the channel, also you can use goroutine
-	channelBuffer <- "d" // if you want, go sendEvent(channelBuffer, "d")
+	channelBuffered <- "d" // if you want, go sendEvent(channelBuffer, "d")
 	// receive a value from the channel
-	value1 := <-channelBuffer
-	close(channelUnbuffer)
-	close(channelBuffer)
+	value1 := <-channelBuffered
+	close(channelUnbuffered)
+	close(channelBuffered)
 	fmt.Println("============Channel start ============")
 	fmt.Printf("value: %v\n", value)
 	fmt.Printf("value1: %v\n", value1)
@@ -73,19 +73,24 @@ func main() {
 
 	// Range over channel
 	channel := make(chan string, 5)
-	go sendEvent(channel, "a")
-	go sendEvent(channel, "b")
-	go sendEvent(channel, "c")
-	go sendEvent(channel, "d")
-	go sendEvent(channel, "e")
-
+	done := make(chan bool)
+	// receive a value from the channel with range
+	go func() {
+		for value := range channel {
+			fmt.Printf("value: %v\n", value)
+		}
+		done <- true
+	}()
+	// send a value to the channel
+	channel <- "a"
+	channel <- "b"
+	channel <- "c"
+	channel <- "d"
+	channel <- "e"
+	// close the channel
 	close(channel)
-
-	// go sendEvent(channel, "f") // this value will be blocked, because the channel just accept 5 values
-	// range over channel
-	for value := range channel {
-		fmt.Printf("value: %v\n", value)
-	}
+	// wait until the goroutine is done
+	<-done
 }
 
 // transfer function, accept an slice and return a new slice
